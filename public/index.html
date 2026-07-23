@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جعبه ابزار معلم | فروشگاه اپ‌ها</title>
+<style>
+  :root{
+    --bg:#f7f5f0;
+    --card:#ffffff;
+    --ink:#2b2b2b;
+    --accent:#2f6f4f;
+    --accent-dark:#204d37;
+    --muted:#6b6b6b;
+    --border:#e6e2d8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  header{
+    padding:28px 20px 20px;
+    text-align:center;
+  }
+  header h1{
+    margin:0 0 6px;
+    font-size:22px;
+  }
+  header p{
+    margin:0;
+    color:var(--muted);
+    font-size:14px;
+  }
+  main{
+    max-width:720px;
+    margin:0 auto;
+    padding:10px 16px 60px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+  @media(min-width:600px){
+    .grid{grid-template-columns:1fr 1fr;}
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .card h2{
+    margin:0;
+    font-size:17px;
+  }
+  .card p{
+    margin:0;
+    color:var(--muted);
+    font-size:13.5px;
+    line-height:1.7;
+  }
+  .price{
+    font-size:16px;
+    font-weight:bold;
+    color:var(--accent-dark);
+  }
+  button.buy{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:12px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  button.buy:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+  }
+  .badge{
+    display:inline-block;
+    background:#fff3d6;
+    color:#8a6100;
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:20px;
+    width:fit-content;
+  }
+  .status{
+    text-align:center;
+    font-size:13px;
+    color:var(--muted);
+    margin-top:20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧰 جعبه ابزار معلم</h1>
+  <p>فروشگاه اپ‌های آموزشی سمیرا سلوانی</p>
+  <span class="badge">نسخه‌ی تمرینی — حالت آزمایشی (Sandbox)</span>
+</header>
+
+<main>
+  <div class="grid" id="product-grid"></div>
+  <p class="status" id="status"></p>
+</main>
+
+<script>
+const products = [
+  {
+    id: "class-notebook",
+    title: "دفتر کلاس من",
+    desc: "اپ مدیریت کلاس، آفلاین و مخصوص موبایل معلم.",
+    amount: 50000
+  },
+  {
+    id: "teacher-portfolio",
+    title: "پوشه کار الکترونیک معلم",
+    desc: "پورتفولیوی دیجیتال معلم، قابل نصب روی اندروید.",
+    amount: 70000
+  },
+  {
+    id: "hormoz-game",
+    title: "بازی تنگه هرمز",
+    desc: "بازی آموزشی تقارن، مخصوص پایه ششم.",
+    amount: 30000
+  }
+];
+
+const grid = document.getElementById("product-grid");
+const statusEl = document.getElementById("status");
+
+products.forEach(p => {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <h2>${p.title}</h2>
+    <p>${p.desc}</p>
+    <div class="price">${p.amount.toLocaleString("fa-IR")} تومان</div>
+    <button class="buy" data-id="${p.id}">خرید و پرداخت</button>
+  `;
+  grid.appendChild(card);
+});
+
+grid.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button.buy");
+  if (!btn) return;
+
+  const product = products.find(p => p.id === btn.dataset.id);
+  btn.disabled = true;
+  btn.textContent = "در حال اتصال به درگاه...";
+  statusEl.textContent = "";
+
+  try {
+    const res = await fetch("/.netlify/functions/request-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: product.amount,
+        description: product.title,
+        productId: product.id
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.ok && data.paymentUrl) {
+      window.location.href = data.paymentUrl;
+    } else {
+      statusEl.textContent = "خطا در اتصال به درگاه: " + (data.error || "نامشخص");
+      btn.disabled = false;
+      btn.textContent = "خرید و پرداخت";
+    }
+  } catch (err) {
+    statusEl.textContent = "خطای شبکه. دوباره تلاش کنید.";
+    btn.disabled = false;
+    btn.textContent = "خرید و پرداخت";
+  }
+});
+</script>
+
+</body>
+</html>
